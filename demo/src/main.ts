@@ -1,41 +1,14 @@
 import '@angular/compiler'
 import { Component, CUSTOM_ELEMENTS_SCHEMA, provideZonelessChangeDetection } from '@angular/core'
 import { bootstrapApplication } from '@angular/platform-browser'
-import { useChatRuntime, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
+import type { ChatUIOptions } from '@opentiny/tiny-robot-chat'
+import { createDemoRuntime } from './runtime'
 import '@opentiny/tiny-robot/dist/style.css'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 import './register'
 import './style.css'
 
-const runtime = useChatRuntime({
-  conversation: {
-    autoSaveMessages: false,
-    storage: {
-      loadConversations: () => [],
-      loadMessages: () => [],
-      saveConversation: () => {},
-      saveMessages: () => {},
-    },
-    useMessageOptions: {
-      initialMessages: [{ role: 'assistant', content: '你好，我是 Angular 页面里的 TrChat。' }],
-      responseProvider: async () => ({
-        id: 'ce-minimal-reply',
-        object: 'chat.completion',
-        created: 0,
-        model: 'local-demo',
-        system_fingerprint: null,
-        choices: [{
-          index: 0,
-          message: { role: 'assistant', content: '收到。这条回复来自本地模拟服务。' },
-          delta: undefined,
-          logprobs: null,
-          finish_reason: 'stop',
-        }],
-      }),
-    },
-  },
-})
-runtime.actions.createConversation({ title: '最小 CE 封装' })
+const runtime = createDemoRuntime('你好，我是 Angular 页面里的 TrChat。', '最小 CE 封装')
 
 // #region mount
 @Component({

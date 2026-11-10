@@ -1,0 +1,124 @@
+diff --git a/packages/chat/src/types/ui/slots.ts b/packages/chat/src/types/ui/slots.ts
+--- a/packages/chat/src/types/ui/slots.ts
++++ b/packages/chat/src/types/ui/slots.ts
+@@ -95,6 +95,11 @@
+   readonly contentIndex?: number
+ }
+ 
++export type ChatMessageFooterRenderer = (
++  context: ChatBubbleContentFooterSlotProps,
++  signal: AbortSignal,
++) => Node | null
++
+ export interface ChatUISlots {
+   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
+   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
+diff --git a/packages/chat/src/types/ui/options.ts b/packages/chat/src/types/ui/options.ts
+--- a/packages/chat/src/types/ui/options.ts
++++ b/packages/chat/src/types/ui/options.ts
+@@ -14,10 +14,12 @@
+ } from '@opentiny/tiny-robot'
+ import type { ChatConversationInfo, ChatIcon } from '../base'
+ import type { ChatUIData } from './data'
++import type { ChatMessageFooterRenderer } from './slots'
+ 
+ export type ChatCssSize = string | number
+ 
+ export interface ChatUIProps {
++  messageFooterRenderer?: ChatMessageFooterRenderer
+   isEmpty?: boolean
+   inputValue?: string
+   defaultInputValue?: string
+diff --git a/packages/chat/src/Chat.vue b/packages/chat/src/Chat.vue
+--- a/packages/chat/src/Chat.vue
++++ b/packages/chat/src/Chat.vue
+@@ -22,6 +22,7 @@
+   ChatPromptClickPayload,
+   ChatRenameConversationPayload,
+   ChatRuntime,
++  ChatMessageFooterRenderer,
+   ChatRuntimeActionErrorPayload,
+   ChatHistoryData,
+   ChatRightAsidePanelId,
+@@ -47,6 +48,7 @@
+ const props = withDefaults(
+   defineProps<{
+     runtime: ChatRuntime
++    messageFooterRenderer?: ChatMessageFooterRenderer
+     isEmpty?: boolean
+     ui?: ChatUIOptions
+     title?: string
+@@ -242,6 +244,7 @@
+     ref="chatUIRef"
+     :data="adapter.data.value"
+     :ui="props.ui"
++    :message-footer-renderer="props.messageFooterRenderer"
+     :floating-state="props.floatingState"
+     :right-aside-open="props.rightAsideOpen"
+     :default-right-aside-open="props.defaultRightAsideOpen"
+diff --git a/packages/chat/src/ChatUI.vue b/packages/chat/src/ChatUI.vue
+--- a/packages/chat/src/ChatUI.vue
++++ b/packages/chat/src/ChatUI.vue
+@@ -16,6 +16,7 @@
+ import ChatInputRegion from './ui/composer/ChatInputRegion.vue'
+ import ChatHeader from './ui/layout/ChatHeader.vue'
+ import ChatMessages from './ui/messages/ChatMessages.vue'
++import MessageFooterOutlet from './ui/renderers/MessageFooterOutlet.vue'
+ import ChatRightAside from './ui/layout/ChatRightAside.vue'
+ import ChatMcpPanel from './ui/layout/ChatMcpPanel.vue'
+ import { useChatAsideState } from './composables/useChatAsideState'
+@@ -722,9 +723,19 @@
+             <template v-if="$slots['bubble-after']" #bubble-after="slotProps">
+               <slot name="bubble-after" v-bind="slotProps" />
+             </template>
+-            <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
+-              <slot name="bubble-content-footer" v-bind="slotProps" />
++            <!-- #region message-footer -->
++            <template
++              v-if="$slots['bubble-content-footer'] || props.messageFooterRenderer"
++              #bubble-content-footer="slotProps"
++            >
++              <slot v-if="$slots['bubble-content-footer']" name="bubble-content-footer" v-bind="slotProps" />
++              <MessageFooterOutlet
++                v-else-if="props.messageFooterRenderer"
++                :renderer="props.messageFooterRenderer"
++                :context="slotProps"
++              />
+             </template>
++            <!-- #endregion message-footer -->
+           </ChatMessages>
+         </div>
+         <TrAnchor
+diff --git a/packages/chat/src/ui/renderers/MessageFooterOutlet.vue b/packages/chat/src/ui/renderers/MessageFooterOutlet.vue
+new file mode 100644
+--- /dev/null
++++ b/packages/chat/src/ui/renderers/MessageFooterOutlet.vue
+@@ -0,0 +1,28 @@
++<script setup lang="ts">
++import { ref, watchEffect } from 'vue'
++import type { ChatBubbleContentFooterSlotProps, ChatMessageFooterRenderer } from '../../types'
++
++const props = defineProps<{
++  context: ChatBubbleContentFooterSlotProps
++  renderer: ChatMessageFooterRenderer
++}>()
++const outlet = ref<HTMLElement | null>(null)
++
++watchEffect((onCleanup) => {
++  const host = outlet.value
++  if (!host) return
++
++  const controller = new AbortController()
++  onCleanup(() => {
++    controller.abort()
++    host.replaceChildren()
++  })
++
++  const node = props.renderer(props.context, controller.signal)
++  if (node) host.append(node)
++}, { flush: 'post' })
++</script>
++
++<template>
++  <div ref="outlet" />
++</template>

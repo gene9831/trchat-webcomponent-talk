@@ -10,3 +10,17 @@ tr-chat {
   height: 350px;
   --tr-layout-height: 100%;
 }
+
+tr-chat.footer-demo {
+  height: 200px;
+}
+
+.copy-button {
+  padding: 4px 9px;
+  border: 1px solid #9eb4db;
+  border-radius: 6px;
+  color: #24467c;
+  background: #f3f7ff;
+  cursor: pointer;
+  font: inherit;
+}
