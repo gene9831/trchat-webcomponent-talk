@@ -1,15 +1,18 @@
 import { useChatRuntime } from '@opentiny/tiny-robot-chat'
+import type { ConversationStorageStrategy } from '@opentiny/tiny-robot-kit'
+
+export const demoStorage: ConversationStorageStrategy = {
+  loadConversations: () => [],
+  loadMessages: () => [],
+  saveConversation: () => {},
+  saveMessages: () => {},
+}
 
 export function createDemoRuntime(initialReply: string, title: string) {
   const runtime = useChatRuntime({
     conversation: {
       autoSaveMessages: false,
-      storage: {
-        loadConversations: () => [],
-        loadMessages: () => [],
-        saveConversation: () => {},
-        saveMessages: () => {},
-      },
+      storage: demoStorage,
       useMessageOptions: {
         initialMessages: [{ role: 'assistant', content: initialReply }],
         responseProvider: async () => ({

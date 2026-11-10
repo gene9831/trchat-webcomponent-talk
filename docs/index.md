@@ -103,3 +103,49 @@ Angular 把创建按钮的函数绑定到 `messageFooterRenderer`。点击时，
 本章用 `messageFooterRenderer` 演示 `bubble-content-footer` 的接入。如果以后要开放多个 scoped slot，可以用一个 `renderers` prop，按区域名称提供回调，例如 `renderers['bubble-content-footer']` 和 `renderers['layout-header']`。
 
 每个要开放的区域仍需在自己的渲染位置接入 Renderer，并传入对应的上下文。`bubble-content-footer` 传当前消息，`layout-header` 传标题等数据。各处可以共用同一个 `RendererOutlet` 实现，由它负责 DOM 的挂载和清理。
+
+## 第 3 步 · 把 Vue 事件传给 Angular
+
+### 在 Angular 中监听 Reasoning 的变化
+
+想在 Angular 里知道用户是否开启了 Reasoning。原生 `TrChat` 会发出 Vue 组件事件 `model-feature-value-change`。先在 Angular 模板里监听 `<tr-chat>` 上的同名 DOM 事件。
+
+<<< ../demo/src/events-demo.ts#binding{html}
+
+打开「演示模型」，切换 Reasoning。第一行用 `watch` 直接观察 Runtime 的值，第二行统计 Angular 从 `<tr-chat>` 收到的 DOM 事件。
+
+<iframe title="修改前的 Angular Reasoning 事件示例" src="demos/03-events-before/events.html" loading="lazy" style="width: 100%; height: 460px; border: 1px solid var(--vp-c-divider); border-radius: 8px;"></iframe>
+
+::: info Notes
+开关更新了 Runtime，Angular 的事件计数仍是 0。内部 TrChat 发出的是 Vue 组件事件，第 2 步的 CE 封装还没有把它转发到 `<tr-chat>` 宿主元素上。 [Vue 组件事件](https://vuejs.org/guide/components/events#emitting-and-listening-to-events)
+:::
+
+### 在 CE 封装中转发事件
+
+这一步的改动落在 CE 封装层。用 `useHost()` 拿到 `<tr-chat>`，在封装里监听内部 TrChat 的事件，再从宿主派发同名的 DOM `CustomEvent`。 [Vue 的 `useHost()`](https://vuejs.org/api/custom-elements.html#usehost)
+
+**`EventsTrChatElement.ce.vue`**
+
+<<< ../demo/src/EventsTrChatElement.ce.vue
+
+::: info Notes
+Vue 自定义元素自身调用 `emit` 时，默认会把事件参数组成 `detail` 数组。本例显式派发 `CustomEvent`，让 `detail` 直接承载原来的变化对象，Angular 可以直接读取 `event.detail.next`。 [Vue 自定义元素的事件](https://vuejs.org/guide/extras/web-components#events)
+:::
+
+### 在 Angular 中读取事件并复验
+
+CE 封装在 `<tr-chat>` 上派发同名的 `CustomEvent` 后，Angular 原来的 `(model-feature-value-change)="onFeatureChange($event)"` 绑定就能收到这个 DOM 事件。
+
+TrChat 先发出变更通知，再写入 Runtime。Angular 在事件处理函数里用 `event.detail.next` 读取本次变化值，Runtime 由 TrChat 负责更新。
+
+<<< ../demo/src/events-demo.ts#handler
+
+再次打开「演示模型」，切换一次 Reasoning。Runtime 变为「开启」，Angular 收到 1 次事件。页面把 `detail` 的 `featureKey`、`previous` 和 `next` 三个字段显示为 `reasoning · false → true`。
+
+<iframe title="修复后的 Angular Reasoning 事件示例" src="demos/03-events-after/events.html" loading="lazy" style="width: 100%; height: 460px; border: 1px solid var(--vp-c-divider); border-radius: 8px;"></iframe>
+
+### 扩展到多个事件
+
+本章用 `model-feature-value-change` 跑通了从 Vue 组件事件到 DOM 事件的转发。同样的方式可以用在 `prompt-click`、`left-aside-open-change` 等宿主需要监听的事件上。
+
+挑出宿主需要监听的事件，在 CE 封装中逐个接入，约定公开的事件名和 `detail` 类型。它们可以共用一个 `forwardEvent(name, detail)` 函数，在 `<tr-chat>` 上派发 `CustomEvent`。

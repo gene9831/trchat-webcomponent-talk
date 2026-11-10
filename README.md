@@ -4,6 +4,8 @@
 
 第 2 步用同一份 Angular 源码构建两个独立页面，观察 `bubble-content-footer` 在最小封装和加入 Renderer 后的行为。
 
+第 3 步用 Reasoning 开关对照 Vue 组件事件和 Web Component 的 DOM 事件。
+
 ## 本地运行
 
 使用 Node.js 22、pnpm、Git 和 tar。首次运行时，先缓存用于构建第 2 步的 TinyRobot 1.0 源码。

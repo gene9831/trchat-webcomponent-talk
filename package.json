@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm run build:demo && vitepress dev docs",
     "build": "pnpm run build:demo && vitepress build docs",
-    "build:demo": "node demo/prepare-renderer.mjs && vite build --config demo/vite.config.mjs && vite build --config demo/vite.config.mjs --mode renderer-before && vite build --config demo/vite.config.mjs --mode renderer-after",
+    "build:demo": "node demo/build.mjs",
     "preview": "vitepress preview docs",
     "fetch:source": "node demo/prepare-renderer.mjs --fetch"
   },
