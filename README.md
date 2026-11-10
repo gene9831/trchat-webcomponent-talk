@@ -8,7 +8,7 @@
 
 ## 本地运行
 
-使用 Node.js 22、pnpm、Git 和 tar。首次运行时，先缓存用于构建第 2 步的 TinyRobot 1.0 源码。
+使用 Node.js 22、pnpm 和 Git。首次运行时，先缓存用于构建第 2 步的 TinyRobot 1.0 源码，构建脚本会用 Node.js 解压。
 
 ```sh
 pnpm install

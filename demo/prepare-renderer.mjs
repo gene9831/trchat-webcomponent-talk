@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { extract } from 'tar'
 
 const revision = '088a52b5ecfc96d1566592b338139ddceb16cfd7'
 const project = fileURLToPath(new URL('../', import.meta.url))
@@ -29,10 +30,16 @@ if (process.argv.includes('--fetch')) {
 
   const staging = mkdtempSync(join(cache, 'renderer-'))
   try {
-    execFileSync('tar', [
-      '-xzf', archive, '-C', staging, '--strip-components=1', `tiny-robot-${revision}/packages/chat/src`,
-    ], { stdio: 'inherit' })
-    execFileSync('git', ['apply', '--directory', relative(project, staging), patch], { cwd: project, stdio: 'inherit' })
+    await extract({ file: archive, cwd: staging, strip: 1, strict: true }, [
+      `tiny-robot-${revision}/packages/chat/src`,
+    ])
+    const patchDirectory = relative(project, staging).split(sep).join('/')
+    const patchText = readFileSync(patch, 'utf8').replace(/\r\n/g, '\n')
+    execFileSync('git', ['apply', '--directory', patchDirectory], {
+      cwd: project,
+      input: patchText,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    })
     rmSync(destination, { recursive: true, force: true })
     renameSync(staging, destination)
   } finally {
