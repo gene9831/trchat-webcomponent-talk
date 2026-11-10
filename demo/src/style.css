@@ -1,0 +1,12 @@
+body {
+  margin: 0;
+  padding: 12px;
+  background: #fff;
+  font: 14px/1.5 system-ui, sans-serif;
+}
+
+tr-chat {
+  display: block;
+  height: 350px;
+  --tr-layout-height: 100%;
+}
